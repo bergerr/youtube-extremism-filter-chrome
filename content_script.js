@@ -149,7 +149,7 @@ function startMainObserver() {
 // Load the hidden state from storage
 async function loadHiddenState() {
     // load checkbox state
-    const storedHideBlocked = await browser.storage.local.get('hideBlocked');
+    const storedHideBlocked = await chrome.storage.local.get('hideBlocked');
     if (!storedHideBlocked || typeof storedHideBlocked.hideBlocked !== 'boolean') {
         // Default to false if not set
         hideBlocked = false;
@@ -161,8 +161,8 @@ async function loadHiddenState() {
 
 // Load the blacklist and start observing
 async function loadBlacklistFromStorage() {
-    const storedBlacklist = await browser.storage.local.get('blacklist');
-    const storedCustomList = await browser.storage.local.get('customList');
+    const storedBlacklist = await chrome.storage.local.get('blacklist');
+    const storedCustomList = await chrome.storage.local.get('customList');
     blacklist = storedBlacklist.blacklist ? storedBlacklist.blacklist
         .split('\n')
         .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
