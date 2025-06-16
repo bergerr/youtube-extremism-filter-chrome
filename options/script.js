@@ -1,5 +1,3 @@
-console.log('Options script loaded');
-
 // Get references to DOM elements
 const blacklistBox = document.getElementById('blacklistSelect');
 const whitelistBox = document.getElementById('whitelistSelect');
@@ -11,10 +9,8 @@ const checkbox = document.getElementById('hideBlockedCheckbox');
  * Loads the blacklist from storage (or a file if it doesn't exist).
  */
 async function loadBlacklist() {
-    console.log('Loading blacklist...');
     storage = await chrome.storage.local.get(['blacklist', 'whitelist', 'customList']);
     if (storage.blacklist) {
-        console.log('loading blacklist from storage');
         const lines = storage.blacklist.trim().split('\n').filter(Boolean);
 
         blacklistBox.innerHTML = ''; // Clear current options
@@ -31,7 +27,6 @@ async function loadBlacklist() {
         loadBlockFile();
     }
     if (storage.whitelist) {
-        console.log('loading whitelist from storage');
         const lines = storage.whitelist.trim().split('\n').filter(Boolean);
 
         whitelistBox.innerHTML = ''; // Clear current options
@@ -45,7 +40,6 @@ async function loadBlacklist() {
         }
     }
     if (storage.customList) {
-        console.log('loading custom list from storage');
         customListBox.innerHTML = storage.customList; // Clear current options
     }
 }
@@ -54,7 +48,6 @@ async function loadBlacklist() {
  * Loads the blacklist from blacklist.txt and populates the select box.
  */
 async function loadBlockFile() {
-    console.log('No blacklist found in storage, loading from file');
     try {
         // Fetch the blacklist file from the extension's lists folder
         const res = await fetch(chrome.runtime.getURL('lists/blacklist.txt'));
