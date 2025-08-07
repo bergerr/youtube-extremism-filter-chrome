@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "youtube-extremism-filter",
+    "name": "YouTube Extremism Filter",
     "description": "A filter for extremist content on YouTube",
     "version": "1.0.0",
     "icons": {
