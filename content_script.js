@@ -1,22 +1,12 @@
-let recommendationsObserver = null;
-
-// const recommendationTag = 'ytd-compact-video-renderer';
-// const channelTag = 'ytd-channel-name';
 const buttonTag = 'button';
 // const menuBoxTag = 'ytd-menu-service-item-renderer';
 const signInTag = 'ytd-masthead button#avatar-btn';
-
-// new changes
-// const recommendationTag = 'yt-lockup-view-model';
-// const channelInfoTag = 'yt-content-metadata-view-model';
-// loop over the children divs for ^^^ and check for matching channel names
-// loop over the children divs for ^^^ and check for button sub-children
-// const menuBoxTag = 'yt-list-view-model';
 
 let blacklist = [];
 let fullList = [];
 let hideBlocked = false;
 
+let recommendationsObserver = null;
 const observeOptions = { childList: true, attributes: false, subtree: true };
 
 // Function to check if the user is signed in
@@ -138,6 +128,7 @@ function doRecommendationLogic(node) {
     const channelName = getChannelNameText(node)
     if (checkChannelName(channelName)) {
         console.log('Blocking channel:', channelName);
+        // TODO - uncomment
         // blockChannel(node);
         // // Hide the blocked channel
         // if (hideBlocked) {
@@ -171,21 +162,26 @@ function processExistingRecommendations(recommendations) {
 // Watch for recommendations parent
 function handleMutations(mutationsList, observer) {
     let recommendations = findRecommendationLinks();
-    if (recommendations.length > 0) {
+
+    // check if the recommendations were found yet
+    if (Object.keys(recommendations).length !== 0) {
         // Disconnect the main observer to avoid duplicate processing
-        console.log('disconnecting observer 1')
         observer.disconnect();
 
         // observe the recommendations parent to watch for new videos
-        // const recommendationsParent = recommendations.item(0).parentNode;
-        const recommendationsParent = getCommonAncestor(recommendations);
-        console.log('starting observer 2')
-        // recommendationsObserver = new MutationObserver(handleRecommendationMutations);
-        // recommendationsObserver.observe(recommendationsParent, observeOptions);
+        // make an observer for each recommendations group in case multiple were found
+        for (let key in recommendations) {
+            // find the common ancestor among this recommendations group
+            const recommendationsParent = getCommonAncestor(recommendations[key]);
+            console.log('starting observer 2');
+            // TODO - uncomment
+            // recommendationsObserver = new MutationObserver(handleRecommendationMutations);
+            // recommendationsObserver.observe(recommendationsParent, observeOptions);
 
-        // Process already-visible recommendations
-        console.log(recommendationsParent)
-        processExistingRecommendations(recommendationsParent.children);
+            // Process already-visible recommendations
+            console.log(recommendationsParent);
+            processExistingRecommendations(recommendationsParent.children);
+        }
     }
 }
 
@@ -232,6 +228,9 @@ function findRecommendationLinks() {
         groups[key].push(el);
     });
 
+    // A set to hold unique tags/classes/depth combinations that matches our search criteria
+    const matchedElements = new Set([]);
+
     // Step 3: filter all <a> elements
     const videoLinks = Array.from(document.querySelectorAll('a'))
         .filter(a => {
@@ -241,29 +240,40 @@ function findRecommendationLinks() {
             let current = a;
             for (let i = 0; i < 3; i++) {
                 current = current.parentElement;
+                // exit if there's no parent found
                 if (!current) break;
 
                 // The group needs at least 5 identical members
                 const key = getGroupKey(current);
                 if (groups[key] && groups[key].length >= 5) {
                     console.log('key is ' + key);
+                    matchedElements.add(key);
                     return true;
                 }
             }
             return false;
         });
 
-    console.log(videoLinks[0]);
-    return videoLinks;
-}
+    // Step 5: split videoLinks into sublists grouped by their matched container key
+    // this handles the case where multiple different arrays matched the filter, but are in different parts of the DOM
+    const groupedLinks = {};
+    videoLinks.forEach(a => {
+        let current = a;
+        for (let i = 0; i < 3; i++) {
+            current = current.parentElement;
+            if (!current) break;
 
-// // Find the recommendations section without using tags
-// // The last update changed all the tags, so this should avoid breaking changes
-// function findRecommendationSection() {
-//     let videoLinks = findRecommendationLinks()
-//     const recommendationContainer = getCommonAncestor(videoLinks);
-//     return recommendationContainer;
-// }
+            const key = getGroupKey(current);
+            if (matchedElements.has(key)) {
+                if (!groupedLinks[key]) groupedLinks[key] = [];
+                groupedLinks[key].push(a);
+                break;
+            }
+        }
+    });
+
+    return groupedLinks; // returns { key1: [a1, a2], key2: [a3, a4], ... }
+}
 
 // Find the common ancestor of all the recommendation links
 function getCommonAncestor(nodes) {
