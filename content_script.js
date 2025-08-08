@@ -1,3 +1,9 @@
+// TODO - test localstorage loading changes
+// TODO - test blocking
+// TODO - update to v1.1.0
+// TODO - figure out how to call updateIfNeeded
+
+
 const buttonTag = 'button';
 // const menuBoxTag = 'ytd-menu-service-item-renderer';
 const signInTag = 'ytd-masthead button#avatar-btn';
@@ -316,20 +322,22 @@ async function loadHiddenState() {
 }
 
 // Load the blacklist and start observing
-async function loadBlacklistFromStorage() {
-    const storedBlacklist = await chrome.storage.local.get('blacklist');
-    const storedCustomList = await chrome.storage.local.get('customList');
-    blacklist = storedBlacklist.blacklist ? storedBlacklist.blacklist
-        .split('\n')
-        .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
-        .filter(Boolean)
-        : [];
-    customList = storedCustomList.customList ? storedCustomList.customList
-        .split('\n')
-        .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
-        .filter(Boolean)
-        : [];
-    fullList = [...blacklist, ...customList];
+async function initiate() {
+    // const storedBlacklist = await chrome.storage.local.get('blacklist');
+    // const storedCustomList = await chrome.storage.local.get('customlist');
+    // blacklist = storedBlacklist.blacklist ? storedBlacklist.blacklist
+    //     .split('\n')
+    //     .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
+    //     .filter(Boolean)
+    //     : [];
+    // customList = storedCustomList.customList ? storedCustomList.customList
+    //     .split('\n')
+    //     .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
+    //     .filter(Boolean)
+    //     : [];
+    // fullList = [...blacklist, ...customList];
+
+    fullList = loadBlacklistFromStorage(false);
 
     // Load the state of the hidden checkbox
     loadHiddenState();
@@ -348,9 +356,16 @@ async function loadBlacklistFromStorage() {
     })();
 }
 
+// Check if it's been long enough to fetch a list update
+function fetchBlacklist() {
+    chrome.runtime.sendMessage({
+        action: 'fetchBlacklist'
+    });
+}
 
 // ----------------------------------------------------------------
 // Main block
 // ----------------------------------------------------------------
 console.debug('YouTube Blocker content script loaded.');
-loadBlacklistFromStorage();
+fetchBlacklist();
+initiate();

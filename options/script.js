@@ -1,3 +1,5 @@
+import { updateBlacklistIfNeeded } from '../shared.js';
+
 // Get references to DOM elements
 const blacklistBox = document.getElementById('blacklistSelect');
 const whitelistBox = document.getElementById('whitelistSelect');
@@ -9,23 +11,29 @@ const checkbox = document.getElementById('hideBlockedCheckbox');
  * Loads the blacklist from storage (or a file if it doesn't exist).
  */
 async function loadBlacklist() {
-    storage = await chrome.storage.local.get(['blacklist', 'whitelist', 'customList']);
-    if (storage.blacklist) {
-        const lines = storage.blacklist.trim().split('\n').filter(Boolean);
+    storage = await chrome.storage.local.get([
+        'blacklist',
+        'whitelist',
+        'customlist'
+    ]);
 
-        blacklistBox.innerHTML = ''; // Clear current options
-
-        // Add each line as an option in the select box
-        for (const line of lines) {
-            const option = document.createElement('option');
-            option.value = line;
-            option.textContent = line;
-            blacklistBox.appendChild(option);
-        }
-    } else {
-        // If no blacklist in storage, load from file
-        loadBlockFile();
+    // If no blacklist in storage, pull it from github and save it to localstorage
+    if (!storage.blacklist) {
+        await updateBlacklistIfNeeded(true);    
     }
+
+    const lines = storage.blacklist.trim().split('\n').filter(Boolean);
+
+    blacklistBox.innerHTML = ''; // Clear current options
+
+    // Add each line as an option in the select box
+    for (const line of lines) {
+        const option = document.createElement('option');
+        option.value = line;
+        option.textContent = line;
+        blacklistBox.appendChild(option);
+    }
+
     if (storage.whitelist) {
         const lines = storage.whitelist.trim().split('\n').filter(Boolean);
 
@@ -39,44 +47,10 @@ async function loadBlacklist() {
             whitelistBox.appendChild(option);
         }
     }
-    if (storage.customList) {
-        customListBox.innerHTML = storage.customList; // Clear current options
+    if (storage.customlist) {
+        customListBox.innerHTML = storage.customlist; // Clear current options
     }
 }
-
-/**
- * Loads the blacklist from blacklist.txt and populates the select box.
- */
-async function loadBlockFile() {
-    try {
-        // Fetch the blacklist file from the extension's lists folder
-        const res = await fetch(chrome.runtime.getURL('lists/blacklist.txt'));
-        const text = await res.text();
-
-        // Split the file into lines, removing empty lines
-        const lines = text.trim().split('\n').filter(Boolean);
-
-        blacklistBox.innerHTML = ''; // Clear current options
-
-        // Add each line as an option in the select box
-        for (const line of lines) {
-            const option = document.createElement('option');
-            option.value = line;
-            option.textContent = line;
-            blacklistBox.appendChild(option);
-        }
-
-        // This is the first time the blacklist is loaded, so we save it to storage
-        chrome.runtime.sendMessage({
-            action: 'saveBlacklist',
-            content: lines.join('\n')
-        })
-    } catch (err) {
-        // Handle errors (e.g., file not found)
-        console.error('Failed to load blacklist:', err);
-    }
-}
-
 
 /**
  * Removes selected items from the blacklist and saves the updated list.
@@ -150,7 +124,7 @@ function saveCustomList(customText) {
     chrome.runtime.sendMessage({
         action: 'saveCustomList',
         content: lines.join('\n')
-    })
+    });
 }
 
 // Attach event listeners to all the buttons

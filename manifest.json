@@ -13,12 +13,13 @@
         "default_popup": "options/index.html"
     },
     "background": {
-        "service_worker": "options/background.js"
+        "service_worker": "options/background.js",
+        "type": "module"
     },
     "content_scripts": [
         {
             "matches": ["*://*.youtube.com/watch*"],
-            "js": ["content_script.js"],
+            "js": ["shared.js", "content_script.js"],
             "run_at": "document_idle"
         }
     ],
@@ -35,9 +36,7 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": [
-                "lists/blacklist.txt"
-            ],
+            "resources": [],
             "matches": [
                 "*://*/*"
             ]
