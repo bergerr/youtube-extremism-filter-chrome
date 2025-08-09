@@ -1,4 +1,4 @@
-import { updateBlacklistIfNeeded } from '../shared.js';
+import { fetchBlacklist, updateBlacklistIfNeeded } from '../shared.js';
 
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === 'saveBlacklist') {
@@ -12,11 +12,12 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 });
 
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
     if (details.reason === 'install') {
         // Pull the list on the first run
-        updateBlacklistIfNeeded()
+        const blacklist = await fetchBlacklist();
         // Set a lastUpdated value so we can fetch updates silently
+        chrome.storage.local.set({ 'blacklist': blacklist });
         chrome.storage.local.set({ 'lastUpdated': Date.now() });
         // Open the options page in a new tab
         chrome.tabs.create({

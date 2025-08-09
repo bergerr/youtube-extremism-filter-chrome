@@ -1,25 +1,38 @@
 const BLOCKLIST_URL = "https://raw.githubusercontent.com/bergerr/youtube-extremism-filter-blacklist/refs/heads/main/blacklist.txt";
 const UPDATE_INTERVAL = 14 * 24 * 60 * 60 * 1000; // 14 days in ms
 
+export function getFromStorage(key, defaultValue) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(key, (result) => {
+            if (result.hasOwnProperty(key)) {
+                resolve(result[key]);
+            } else {
+                resolve(defaultValue);
+            }
+        });
+    });
+}
+
 // Load the full blocklist from storage into a single array
-export async function loadBlacklistFromStorage(include_whitelist=false){
-    const storedBlacklist = await chrome.storage.local.get('blacklist');
-    const storedCustomList = await chrome.storage.local.get('customlist');
-    blacklist = storedBlacklist.blacklist ? storedBlacklist.blacklist
+export async function loadBlacklistFromStorage(include_whitelist=false) {
+    const storedBlacklist = await getFromStorage('blacklist');
+    const storedCustomList = await getFromStorage('customlist');
+
+    const blacklist = storedBlacklist ? storedBlacklist
         .split('\n')
         .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
         .filter(Boolean)
         : [];
-    customList = storedCustomList.customList ? storedCustomList.customList
+    const customList = storedCustomList ? storedCustomList
         .split('\n')
         .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
         .filter(Boolean)
         : [];
-    
+
     // Optionally append the whitelist
     if (include_whitelist) {
-        const storedWhiteList = await chrome.storage.local.get('whitelist');
-        whiteList = storedWhiteList.whiteList ? storedWhiteList.whiteList
+        const storedWhiteList = await getFromStorage('whitelist');
+        const whiteList = storedWhiteList ? storedWhiteList
         .split('\n')
         .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
         .filter(Boolean)
@@ -31,27 +44,58 @@ export async function loadBlacklistFromStorage(include_whitelist=false){
     }
 }
 
+// Download the blacklist from github
+export async function fetchBlacklist() {
+    const response = await fetch(BLOCKLIST_URL);
+    if (!response.ok) {
+        // Do nothing if the file is unavailable
+        console.log("fetch failed");
+        console.log(response)
+        return
+    }
+    console.log("fetch was good");
+
+    const text = await response.text();
+    const parsed_text = text.trim().split('\n').filter(Boolean);
+    return parsed_text;
+}
+
 // Pull the blacklist from github if it's been 14 days
 export async function updateBlacklistIfNeeded(force=false) {
+    console.log("updating");
     const now = Date.now();
 
     // Get saved blocklist and timestamp
-    const lastUpdated = await chrome.storage.local.get("lastUpdated");
+    const lastUpdated = await getFromStorage("lastUpdated");
+    // chrome.storage.local.get("lastUpdated", (result) => {
+    //     const lastUpdated = result.lastUpdated || 0;
+    //     console.log("Last updated:", lastUpdated);
+    // });
 
     // Check if update needed
     if (force || !lastUpdated || (now - lastUpdated) > UPDATE_INTERVAL) {
+        console.log("fetching");
         try {
-            const response = await fetch(BLOCKLIST_URL);
-            if (!response.ok) {
-                // Do nothing if the file is unavailable
-                return
-            }
-            
-            const text = await response.text();
-            const lines = text.trim().split('\n').filter(Boolean);
+            // console.log("fetching 2");
+            // const response = await fetch(BLOCKLIST_URL);
+            // if (!response.ok) {
+            //     // Do nothing if the file is unavailable
+            //     console.log("fetch failed");
+            //     console.log(response)
+            //     return
+            // }
+            // console.log("fetch was good");
 
-            const storedBlacklist = await chrome.storage.local.get('blacklist');
-            const fullList = loadBlacklistFromStorage(true);
+            // const text = await response.text();
+            // console.log(text)
+            // const lines = text.trim().split('\n').filter(Boolean);
+            const lines = await fetchBlacklist();
+
+            const storedBlacklist = await getFromStorage('blacklist', []);
+            const fullList = await loadBlacklistFromStorage(true);
+            console.log('got fullList')
+            console.log(typeof(fullList));
+            console.log(fullList)
 
             // Get any new items from the fetched blacklist
             const missingEntries = lines.filter(entry => !fullList.includes(entry));
@@ -65,7 +109,7 @@ export async function updateBlacklistIfNeeded(force=false) {
             console.log(`Blocklist updated with ${missingEntries.length} entries`);
 
             // return the update blacklist
-            return await chrome.storage.local.get('blacklist');
+            return await getFromStorage('blacklist');
         } catch (err) {
             console.error("Failed to fetch blocklist:", err);
         }

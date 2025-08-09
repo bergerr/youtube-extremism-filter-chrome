@@ -1,4 +1,8 @@
-// TODO - test localstorage loading changes
+// DONE - fetching blacklist from github
+// DONE - loading blacklist on the install
+// DONE - only fetch once on install
+// DONE - localstorage loading works
+
 // TODO - test blocking
 // TODO - update to v1.1.0
 // TODO - figure out how to call updateIfNeeded
@@ -337,7 +341,7 @@ async function initiate() {
     //     : [];
     // fullList = [...blacklist, ...customList];
 
-    fullList = loadBlacklistFromStorage(false);
+    fullList = await loadBlacklistFromStorage(false);
 
     // Load the state of the hidden checkbox
     loadHiddenState();

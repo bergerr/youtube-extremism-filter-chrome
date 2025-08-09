@@ -1,54 +1,48 @@
-import { updateBlacklistIfNeeded } from '../shared.js';
+import { getFromStorage, updateBlacklistIfNeeded } from '../shared.js';
 
 // Get references to DOM elements
 const blacklistBox = document.getElementById('blacklistSelect');
 const whitelistBox = document.getElementById('whitelistSelect');
 const customListBox = document.getElementById('customListBox');
-const checkbox = document.getElementById('hideBlockedCheckbox');
+// const checkbox = document.getElementById('hideBlockedCheckbox');
 
 
 /**
  * Loads the blacklist from storage (or a file if it doesn't exist).
  */
 async function loadBlacklist() {
-    storage = await chrome.storage.local.get([
-        'blacklist',
-        'whitelist',
-        'customlist'
-    ]);
+    let blacklist = await getFromStorage('blacklist');
+    let whitelist = await getFromStorage('whitelist');
+    let customlist = await getFromStorage('customlist');
 
     // If no blacklist in storage, pull it from github and save it to localstorage
-    if (!storage.blacklist) {
-        await updateBlacklistIfNeeded(true);    
+    if (!blacklist) {
+        blacklist = await updateBlacklistIfNeeded(true);
     }
-
-    const lines = storage.blacklist.trim().split('\n').filter(Boolean);
 
     blacklistBox.innerHTML = ''; // Clear current options
 
     // Add each line as an option in the select box
-    for (const line of lines) {
+    for (const line of blacklist) {
         const option = document.createElement('option');
         option.value = line;
         option.textContent = line;
         blacklistBox.appendChild(option);
     }
 
-    if (storage.whitelist) {
-        const lines = storage.whitelist.trim().split('\n').filter(Boolean);
-
+    if (whitelist) {
         whitelistBox.innerHTML = ''; // Clear current options
 
         // Add each line as an option in the select box
-        for (const line of lines) {
+        for (const line of whitelist) {
             const option = document.createElement('option');
             option.value = line;
             option.textContent = line;
             whitelistBox.appendChild(option);
         }
     }
-    if (storage.customlist) {
-        customListBox.innerHTML = storage.customlist; // Clear current options
+    if (customlist) {
+        customListBox.innerHTML = customlist; // Clear current options
     }
 }
 
