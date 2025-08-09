@@ -7,11 +7,12 @@ const customListBox = document.getElementById('customListBox');
 // const checkbox = document.getElementById('hideBlockedCheckbox');
 
 
-/**
- * Loads the blacklist from storage (or a file if it doesn't exist).
- */
+// Loads the blacklist from storage (or a file if it doesn't exist).
 async function loadBlacklist() {
     let blacklist = await getFromStorage('blacklist');
+    console.log('getting blacklist');
+    console.log(blacklist instanceof Array);
+    console.log(blacklist);
     let whitelist = await getFromStorage('whitelist');
     let customlist = await getFromStorage('customlist');
 
@@ -46,9 +47,7 @@ async function loadBlacklist() {
     }
 }
 
-/**
- * Removes selected items from the blacklist and saves the updated list.
- */
+// Removes selected items from the blacklist and saves the updated list.
 function moveBetweenLists(sourceBox, targetBox) {
     // Get selected options to remove
     const selected = Array.from(sourceBox.selectedOptions).map(opt => opt.value);
@@ -61,6 +60,7 @@ function moveBetweenLists(sourceBox, targetBox) {
     let currentList = Array.from(targetBox.options).map(opt => opt.value)
 
     // decide which action to take based on the source box
+    let actionSource, actionTarget;
     if (sourceBox.id === 'blacklistSelect') {
         actionSource = 'saveBlacklist';
         actionTarget = 'saveWhitelist';
@@ -72,13 +72,13 @@ function moveBetweenLists(sourceBox, targetBox) {
     // Send the updated source list to the background script to save
     chrome.runtime.sendMessage({
         action: actionSource,
-        content: remaining.join('\n')
+        content: remaining
     }).then(() => {
         // Send the target list to the background service to save
         currentList = currentList.concat(selected).sort(); // Combine lists and sort
         chrome.runtime.sendMessage({
             action: actionTarget,
-            content: currentList.join('\n')
+            content: currentList
         })
     }).then(() => {
         // repopulate the select box with the updated source list
@@ -104,9 +104,7 @@ function moveBetweenLists(sourceBox, targetBox) {
     });
 }
 
-/**
- * Converts the custom text to a secondary blacklist.
- */
+// Converts the custom text to a secondary blacklist.
 function saveCustomList(customText) {
     // Get the custom text value
     const customValue = customText.value.trim();

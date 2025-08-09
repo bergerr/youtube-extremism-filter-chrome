@@ -2,11 +2,11 @@
 // DONE - loading blacklist on the install
 // DONE - only fetch once on install
 // DONE - localstorage loading works
+// DONE - refreshing script page after whitelisting is broken
 
 // TODO - test blocking
 // TODO - update to v1.1.0
-// TODO - figure out how to call updateIfNeeded
-
+// TODO - figure out how to call updateIfNeeded (maybe DONE?)
 
 const buttonTag = 'button';
 // const menuBoxTag = 'ytd-menu-service-item-renderer';
@@ -327,21 +327,11 @@ async function loadHiddenState() {
 
 // Load the blacklist and start observing
 async function initiate() {
-    // const storedBlacklist = await chrome.storage.local.get('blacklist');
-    // const storedCustomList = await chrome.storage.local.get('customlist');
-    // blacklist = storedBlacklist.blacklist ? storedBlacklist.blacklist
-    //     .split('\n')
-    //     .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
-    //     .filter(Boolean)
-    //     : [];
-    // customList = storedCustomList.customList ? storedCustomList.customList
-    //     .split('\n')
-    //     .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
-    //     .filter(Boolean)
-    //     : [];
-    // fullList = [...blacklist, ...customList];
-
-    fullList = await loadBlacklistFromStorage(false);
+    console.log('getting full list in CS');
+    const { getFromStorage } = await import(chrome.runtime.getURL('shared.js'));
+    fullList = await getFromStorage('blacklist', []);
+    console.log('full list fetched in CS');
+    console.log(fullList)
 
     // Load the state of the hidden checkbox
     loadHiddenState();
@@ -361,15 +351,16 @@ async function initiate() {
 }
 
 // Check if it's been long enough to fetch a list update
-function fetchBlacklist() {
+function sendFetchBlacklist() {
     chrome.runtime.sendMessage({
         action: 'fetchBlacklist'
     });
 }
 
+
 // ----------------------------------------------------------------
 // Main block
 // ----------------------------------------------------------------
 console.debug('YouTube Blocker content script loaded.');
-fetchBlacklist();
+sendFetchBlacklist();
 initiate();

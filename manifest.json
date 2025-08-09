@@ -19,7 +19,7 @@
     "content_scripts": [
         {
             "matches": ["*://*.youtube.com/watch*"],
-            "js": ["shared.js", "content_script.js"],
+            "js": ["content_script.js"],
             "run_at": "document_idle"
         }
     ],
@@ -35,10 +35,8 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": [],
-            "matches": [
-                "*://*/*"
-            ]
+            "resources": ["shared.js"],
+            "matches": ["*://*.youtube.com/*"]
         }
     ]
 }

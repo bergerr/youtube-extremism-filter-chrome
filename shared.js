@@ -1,6 +1,7 @@
 const BLOCKLIST_URL = "https://raw.githubusercontent.com/bergerr/youtube-extremism-filter-blacklist/refs/heads/main/blacklist.txt";
 const UPDATE_INTERVAL = 14 * 24 * 60 * 60 * 1000; // 14 days in ms
 
+// Get a value from local storage, or a default if it doesn't exist
 export function getFromStorage(key, defaultValue) {
     return new Promise((resolve) => {
         chrome.storage.local.get(key, (result) => {
@@ -14,7 +15,7 @@ export function getFromStorage(key, defaultValue) {
 }
 
 // Load the full blocklist from storage into a single array
-export async function loadBlacklistFromStorage(include_whitelist=false) {
+export async function loadBlacklistFromStorage(includeWhitelist=false) {
     const storedBlacklist = await getFromStorage('blacklist');
     const storedCustomList = await getFromStorage('customlist');
 
@@ -23,6 +24,8 @@ export async function loadBlacklistFromStorage(include_whitelist=false) {
         .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
         .filter(Boolean)
         : [];
+    console.log('blacklist from storage in SHARE');
+    console.log(blacklist);
     const customList = storedCustomList ? storedCustomList
         .split('\n')
         .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
@@ -30,7 +33,7 @@ export async function loadBlacklistFromStorage(include_whitelist=false) {
         : [];
 
     // Optionally append the whitelist
-    if (include_whitelist) {
+    if (includeWhitelist) {
         const storedWhiteList = await getFromStorage('whitelist');
         const whiteList = storedWhiteList ? storedWhiteList
         .split('\n')
@@ -67,28 +70,11 @@ export async function updateBlacklistIfNeeded(force=false) {
 
     // Get saved blocklist and timestamp
     const lastUpdated = await getFromStorage("lastUpdated");
-    // chrome.storage.local.get("lastUpdated", (result) => {
-    //     const lastUpdated = result.lastUpdated || 0;
-    //     console.log("Last updated:", lastUpdated);
-    // });
 
     // Check if update needed
     if (force || !lastUpdated || (now - lastUpdated) > UPDATE_INTERVAL) {
         console.log("fetching");
         try {
-            // console.log("fetching 2");
-            // const response = await fetch(BLOCKLIST_URL);
-            // if (!response.ok) {
-            //     // Do nothing if the file is unavailable
-            //     console.log("fetch failed");
-            //     console.log(response)
-            //     return
-            // }
-            // console.log("fetch was good");
-
-            // const text = await response.text();
-            // console.log(text)
-            // const lines = text.trim().split('\n').filter(Boolean);
             const lines = await fetchBlacklist();
 
             const storedBlacklist = await getFromStorage('blacklist', []);
