@@ -34,11 +34,9 @@ export async function fetchBlacklist() {
     const response = await fetch(BLOCKLIST_URL);
     if (!response.ok) {
         // Do nothing if the file is unavailable
-        console.log("fetch failed");
-        console.log(response)
+        console.debug('blacklist fetch failed');
         return
     }
-    console.log("fetch was good");
 
     const text = await response.text();
     const parsed_text = text.trim().split('\n').filter(Boolean);
@@ -47,7 +45,6 @@ export async function fetchBlacklist() {
 
 // Pull the blacklist from github if it's been 14 days
 export async function updateBlacklistIfNeeded(force=false) {
-    console.log("updating in SHARED");
     const now = Date.now();
 
     // Get saved blocklist and timestamp
@@ -70,7 +67,7 @@ export async function updateBlacklistIfNeeded(force=false) {
             }
             chrome.storage.local.set({ 'lastUpdated': now });
 
-            console.log(`Blocklist updated with ${missingEntries.length} entries`);
+            console.debug(`Blocklist updated with ${missingEntries.length} entries`);
 
             // return the update blacklist
             return await getFromStorage('blacklist');
@@ -78,6 +75,6 @@ export async function updateBlacklistIfNeeded(force=false) {
             console.error("Failed to fetch blocklist:", err);
         }
     } else {
-        console.log("Blocklist is up to date.");
+        console.debug("Blocklist is up to date.");
     }
 }

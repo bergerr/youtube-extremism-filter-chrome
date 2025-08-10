@@ -4,12 +4,16 @@
 // DONE - localstorage loading works
 // DONE - refreshing script page after whitelisting is broken
 // DONE - figure out how to call updateIfNeeded
+// DONE - test blocking
 
-// TODO - test blocking
-// TODO - update to v1.1.0
+// TODO - test mutation handler
+
+// debugging
+const DEBUG = false
 
 const buttonTag = 'button';
 const signInTag = 'ytd-masthead button#avatar-btn';
+const menuRole = '[role="menuitem"]';
 
 let blacklist = [];
 let fullList = [];
@@ -19,7 +23,7 @@ let recommendationsObserver = null;
 const observeOptions = { childList: true, attributes: false, subtree: true };
 
 // Function to check if the user is signed in
-function isUserSignedIn(tag, maxRetries = 10, delay = 300) {
+function isUserSignedIn(tag, maxRetries=10, delay=300) {
     return new Promise((resolve, reject) => {
         let attempts = 0;
         const check = () => {
@@ -41,12 +45,11 @@ function isUserSignedIn(tag, maxRetries = 10, delay = 300) {
 }
 
 // Wait for menu item
-function waitForMenuItem(labelText, maxRetries = 10, delay = 300) {
+function waitForMenuItem(labelText, maxRetries=10, delay=300) {
     return new Promise((resolve, reject) => {
         let attempts = 0;
         const check = () => {
-            // const items = Array.from(document.getElementsByTagName(menuBoxTag));
-            const items = document.querySelectorAll('[role="menuitem"]');
+            const items = Array.from(document.querySelectorAll(menuRole));
             const match = items.find(item => item.innerText.trim().toLowerCase() === labelText.toLowerCase());
             if (match) {
                 return resolve(match);
@@ -66,40 +69,45 @@ function waitForMenuItem(labelText, maxRetries = 10, delay = 300) {
 // Click menu and block
 function blockChannel(node) {
     if (node.nodeType === 1 && node.tagName.toLowerCase() === buttonTag) {
+        if (DEBUG) {
+            node.style.outline = '2px solid red';
+        }
+        node.click();
+
+        waitForMenuItem("Don't recommend channel")
+            .then(item => {
+                item.click();
+            })
+            .catch(err => {
+                console.warn(err);
+            });
         return node;
     }
     for (const child of node.childNodes) {
         const found = blockChannel(child);
-        if (found) {
-            child.click();
-
-            waitForMenuItem("Don't recommend channel")
-                .then(item => {
-                    item.click();
-                })
-                .catch(err => {
-                    console.warn(err);
-                });
-
-            return node;
-        }
+        if (found) return found;
     }
+
     return null;
+}
+
+// Normalize a channel name by removing whitespace and lowercasing it
+function normalizeText(text) {
+    return text.trim().toLowerCase().replace(/\s+/g, '');
 }
 
 // Check if channel is in blacklist
 function checkChannelName(channelName) {
-    console.log('checking channel name')
     if (channelName == null) {
         return false;
     }
-    const cleaned = channelName.trim().toLowerCase().replace(/\s+/g, '');
-    return fullList.includes(cleaned);
+    const normalizedChannel = normalizeText(channelName);
+    const normalizedList = fullList.map(normalizeText);
+    return normalizedList.includes(normalizedChannel);
 }
 
 // Get the channel name without using tags
 function getChannelNameText(element) {
-    console.log('in getChannelName')
     // Loop over all text underneath the recommendation
     const walker = document.createTreeWalker(
         element,
@@ -121,7 +129,7 @@ function getChannelNameText(element) {
     while (walker.nextNode()) {
         const text = walker.currentNode.textContent.trim();
         if (text.length > 0) {
-            console.log(text)
+            console.log('-----' + text + '-----')
             return text; // Return the first non-empty, non-<a> text
         }
     }
@@ -131,18 +139,17 @@ function getChannelNameText(element) {
 
 // Common logic for both recommendation functions
 function doRecommendationLogic(node) {
-    console.log('recommendation section');
-    node.style.outline = '2px solid limegreen';
-    // const found = node.getElementsByTagName(channelTag);
+    if (DEBUG) {
+        node.style.outline = '2px solid limegreen';
+    }
     const channelName = getChannelNameText(node)
     if (checkChannelName(channelName)) {
-        console.log('Blocking channel:', channelName);
-        // TODO - uncomment
-        // blockChannel(node);
-        // // Hide the blocked channel
-        // if (hideBlocked) {
-        //     node.style.display = 'none';
-        // }
+        console.debug('Blocking channel:', channelName);
+        blockChannel(node);
+        // Hide the blocked channel
+        if (hideBlocked) {
+            node.style.display = 'none';
+        }
     }
 }
 
@@ -181,13 +188,10 @@ function handleMutations(mutationsList, observer) {
         for (let key in recommendations) {
             // find the common ancestor among this recommendations group
             const recommendationsParent = getCommonAncestor(recommendations[key]);
-            console.log('starting observer 2');
-            // TODO - uncomment
-            // recommendationsObserver = new MutationObserver(handleRecommendationMutations);
-            // recommendationsObserver.observe(recommendationsParent, observeOptions);
+            recommendationsObserver = new MutationObserver(handleRecommendationMutations);
+            recommendationsObserver.observe(recommendationsParent, observeOptions);
 
             // Process already-visible recommendations
-            console.log(recommendationsParent);
             processExistingRecommendations(recommendationsParent.children);
         }
     }
@@ -200,7 +204,6 @@ function startMainObserver() {
     const targetNode = document.documentElement;
     const observer = new MutationObserver(handleMutations);
     observer.observe(targetNode, observeOptions);
-    console.log('observer 1 started')
 }
 
 // Get the depth of an element
@@ -254,7 +257,6 @@ function findRecommendationLinks() {
                 // The group needs at least 5 identical members
                 const key = getGroupKey(current);
                 if (groups[key] && groups[key].length >= 5) {
-                    console.log('key is ' + key);
                     matchedElements.add(key);
                     return true;
                 }
@@ -327,7 +329,6 @@ async function loadHiddenState() {
 async function initiate() {
     const { getFromStorage } = await import(chrome.runtime.getURL('shared.js'));
     fullList = await getFromStorage('blacklist', []);
-    console.log(fullList)
 
     // Load the state of the hidden checkbox
     loadHiddenState();
@@ -337,7 +338,6 @@ async function initiate() {
         try {
             const signedIn = await isUserSignedIn(signInTag);
             if (signedIn) {
-                console.log('starting observer 1')
                 startMainObserver();
             }
         } catch (e) {
