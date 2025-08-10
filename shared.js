@@ -16,30 +16,12 @@ export function getFromStorage(key, defaultValue) {
 
 // Load the full blocklist from storage into a single array
 export async function loadBlacklistFromStorage(includeWhitelist=false) {
-    const storedBlacklist = await getFromStorage('blacklist');
-    const storedCustomList = await getFromStorage('customlist');
-
-    const blacklist = storedBlacklist ? storedBlacklist
-        .split('\n')
-        .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
-        .filter(Boolean)
-        : [];
-    console.log('blacklist from storage in SHARE');
-    console.log(blacklist);
-    const customList = storedCustomList ? storedCustomList
-        .split('\n')
-        .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
-        .filter(Boolean)
-        : [];
+    const blacklist = await getFromStorage('blacklist', []);
+    const customList = await getFromStorage('customlist', []);
 
     // Optionally append the whitelist
     if (includeWhitelist) {
-        const storedWhiteList = await getFromStorage('whitelist');
-        const whiteList = storedWhiteList ? storedWhiteList
-        .split('\n')
-        .map(line => line.trim().toLowerCase().replace(/\s+/g, ''))
-        .filter(Boolean)
-        : [];
+        const whiteList = await getFromStorage('whitelist', []);
         return [...blacklist, ...customList, ...whiteList];
     }
     else {
@@ -65,7 +47,7 @@ export async function fetchBlacklist() {
 
 // Pull the blacklist from github if it's been 14 days
 export async function updateBlacklistIfNeeded(force=false) {
-    console.log("updating");
+    console.log("updating in SHARED");
     const now = Date.now();
 
     // Get saved blocklist and timestamp
@@ -73,15 +55,11 @@ export async function updateBlacklistIfNeeded(force=false) {
 
     // Check if update needed
     if (force || !lastUpdated || (now - lastUpdated) > UPDATE_INTERVAL) {
-        console.log("fetching");
         try {
             const lines = await fetchBlacklist();
 
             const storedBlacklist = await getFromStorage('blacklist', []);
             const fullList = await loadBlacklistFromStorage(true);
-            console.log('got fullList')
-            console.log(typeof(fullList));
-            console.log(fullList)
 
             // Get any new items from the fetched blacklist
             const missingEntries = lines.filter(entry => !fullList.includes(entry));

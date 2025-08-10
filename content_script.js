@@ -3,13 +3,12 @@
 // DONE - only fetch once on install
 // DONE - localstorage loading works
 // DONE - refreshing script page after whitelisting is broken
+// DONE - figure out how to call updateIfNeeded
 
 // TODO - test blocking
 // TODO - update to v1.1.0
-// TODO - figure out how to call updateIfNeeded (maybe DONE?)
 
 const buttonTag = 'button';
-// const menuBoxTag = 'ytd-menu-service-item-renderer';
 const signInTag = 'ytd-masthead button#avatar-btn';
 
 let blacklist = [];
@@ -163,7 +162,6 @@ function handleRecommendationMutations(mutationsList) {
 
 // Scan visible recommendations immediately
 function processExistingRecommendations(recommendations) {
-    // const nodes = document.getElementsByTagName(recommendationTag);
     for (const recommendation of recommendations) {
         doRecommendationLogic(recommendation);
     }
@@ -327,10 +325,8 @@ async function loadHiddenState() {
 
 // Load the blacklist and start observing
 async function initiate() {
-    console.log('getting full list in CS');
     const { getFromStorage } = await import(chrome.runtime.getURL('shared.js'));
     fullList = await getFromStorage('blacklist', []);
-    console.log('full list fetched in CS');
     console.log(fullList)
 
     // Load the state of the hidden checkbox
