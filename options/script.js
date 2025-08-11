@@ -4,7 +4,6 @@ import { getFromStorage, updateBlacklistIfNeeded } from '../shared.js';
 const blacklistBox = document.getElementById('blacklistSelect');
 const whitelistBox = document.getElementById('whitelistSelect');
 const customListBox = document.getElementById('customListBox');
-// const checkbox = document.getElementById('hideBlockedCheckbox');
 
 
 // Loads the blacklist from storage (or a file if it doesn't exist).
@@ -129,13 +128,6 @@ document.getElementById('addButton').addEventListener('click', () => {
 document.getElementById('saveCustomButton').addEventListener('click', () => {
     // moveBetweenLists(whitelistBox, blacklistBox)
     saveCustomList(customListBox);
-});
-document.getElementById('hideBlockedCheckbox').addEventListener('change', (event) => {
-    if (event.currentTarget.checked) {
-        chrome.storage.local.set({ 'hideBlocked': true });
-    } else {
-        chrome.storage.local.set({ 'hideBlocked': false });
-    }
 });
 
 // Initial load of the blacklist when the page loads

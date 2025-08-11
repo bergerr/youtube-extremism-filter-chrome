@@ -7,9 +7,11 @@
 // DONE - test blocking
 
 // TODO - test mutation handler
+// TODO - mutation handler reactivates on "undo" click
+// TODO - only blocks final one
 
 // debugging
-const DEBUG = false
+const DEBUG = true;
 
 const buttonTag = 'button';
 const signInTag = 'ytd-masthead button#avatar-btn';
@@ -17,7 +19,6 @@ const menuRole = '[role="menuitem"]';
 
 let blacklist = [];
 let fullList = [];
-let hideBlocked = false;
 
 let recommendationsObserver = null;
 const observeOptions = { childList: true, attributes: false, subtree: true };
@@ -67,7 +68,7 @@ function waitForMenuItem(labelText, maxRetries=10, delay=300) {
 }
 
 // Click menu and block
-function blockChannel(node) {
+async function blockChannel(node) {
     if (node.nodeType === 1 && node.tagName.toLowerCase() === buttonTag) {
         if (DEBUG) {
             node.style.outline = '2px solid red';
@@ -84,7 +85,7 @@ function blockChannel(node) {
         return node;
     }
     for (const child of node.childNodes) {
-        const found = blockChannel(child);
+        const found = await blockChannel(child);
         if (found) return found;
     }
 
@@ -138,18 +139,16 @@ function getChannelNameText(element) {
 }
 
 // Common logic for both recommendation functions
-function doRecommendationLogic(node) {
+async function doRecommendationLogic(node) {
     if (DEBUG) {
         node.style.outline = '2px solid limegreen';
     }
     const channelName = getChannelNameText(node)
     if (checkChannelName(channelName)) {
-        console.debug('Blocking channel:', channelName);
+        console.info('Blocking channel:', channelName);
         blockChannel(node);
         // Hide the blocked channel
-        if (hideBlocked) {
-            node.style.display = 'none';
-        }
+        node.style.display = 'none';
     }
 }
 
@@ -168,9 +167,9 @@ function handleRecommendationMutations(mutationsList) {
 }
 
 // Scan visible recommendations immediately
-function processExistingRecommendations(recommendations) {
+async function processExistingRecommendations(recommendations) {
     for (const recommendation of recommendations) {
-        doRecommendationLogic(recommendation);
+        await doRecommendationLogic(recommendation); // Wait for each to finish
     }
 }
 
@@ -312,26 +311,10 @@ function getCommonAncestor(nodes) {
     return commonAncestors.pop(); // last shared ancestor
 }
 
-// Load the hidden state from storage
-async function loadHiddenState() {
-    // load checkbox state
-    const storedHideBlocked = await chrome.storage.local.get('hideBlocked');
-    if (!storedHideBlocked || typeof storedHideBlocked.hideBlocked !== 'boolean') {
-        // Default to false if not set
-        hideBlocked = false;
-    } else {
-        // Ensure the value is a boolean
-        hideBlocked = Boolean(storedHideBlocked.hideBlocked);
-    }
-}
-
 // Load the blacklist and start observing
 async function initiate() {
     const { getFromStorage } = await import(chrome.runtime.getURL('shared.js'));
     fullList = await getFromStorage('blacklist', []);
-
-    // Load the state of the hidden checkbox
-    loadHiddenState();
 
     // Check if the user is signed in
     (async () => {
