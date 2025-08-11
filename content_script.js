@@ -1,17 +1,5 @@
-// DONE - fetching blacklist from github
-// DONE - loading blacklist on the install
-// DONE - only fetch once on install
-// DONE - localstorage loading works
-// DONE - refreshing script page after whitelisting is broken
-// DONE - figure out how to call updateIfNeeded
-// DONE - test blocking
-
-// TODO - test mutation handler
-// TODO - mutation handler reactivates on "undo" click
-// TODO - only blocks final one
-
 // debugging
-const DEBUG = true;
+const DEBUG = false;
 
 const buttonTag = 'button';
 const signInTag = 'ytd-masthead button#avatar-btn';
@@ -130,7 +118,6 @@ function getChannelNameText(element) {
     while (walker.nextNode()) {
         const text = walker.currentNode.textContent.trim();
         if (text.length > 0) {
-            console.log('-----' + text + '-----')
             return text; // Return the first non-empty, non-<a> text
         }
     }
@@ -145,7 +132,7 @@ async function doRecommendationLogic(node) {
     }
     const channelName = getChannelNameText(node)
     if (checkChannelName(channelName)) {
-        console.info('Blocking channel:', channelName);
+        console.debug('Blocking channel:', channelName);
         blockChannel(node);
         // Hide the blocked channel
         node.style.display = 'none';
@@ -154,11 +141,8 @@ async function doRecommendationLogic(node) {
 
 // MutationObserver for new items
 function handleRecommendationMutations(mutationsList) {
-    console.log('in handle recs')
     for (const mutation of mutationsList) {
-        console.log('in handle rec loop')
         for (const node of mutation.addedNodes) {
-            console.log('in handle rec added node loop')
             if (node.nodeType === 1) {
                 doRecommendationLogic(node);
             }

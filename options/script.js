@@ -9,9 +9,6 @@ const customListBox = document.getElementById('customListBox');
 // Loads the blacklist from storage (or a file if it doesn't exist).
 async function loadBlacklist() {
     let blacklist = await getFromStorage('blacklist');
-    console.log('getting blacklist');
-    console.log(blacklist instanceof Array);
-    console.log(blacklist);
     let whitelist = await getFromStorage('whitelist');
     let customlist = await getFromStorage('customlist');
 
